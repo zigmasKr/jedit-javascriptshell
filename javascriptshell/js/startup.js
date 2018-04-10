@@ -5,6 +5,7 @@
 jedit = org.gjt.sp.jedit;
 jEdit = jedit.jEdit
 Macros = jedit.Macros
+JsShell = Java.type('javascriptshell.JavaScriptShell');
 
 
 //{{{ Dialog functions
@@ -66,7 +67,7 @@ function help() {//{{{
 	for (i in this) {
 		o = this[i];
 		if (typeof(o) === "function" && ("__docstring__" in o)) {
-			println(i + " - " + o["__docstring__"]);
+			print(i + " - " + o["__docstring__"]);
 		}
 	}
 }
@@ -138,7 +139,7 @@ function show(o){//{{{
 
 	for (i in o){
 		echo(i + ': ' + o[i]);
-  }
+	}
 show.__docstring__ = "enumerate the contents of an object"
 }//}}}
 
@@ -157,14 +158,17 @@ show.__docstring__ = "enumerate the contents of an object"
  *  class console.gui.Button
  */
 function classForName(name) {
-    try {
-    			return classForName.loader.loadClass(name)
-    }
-    	catch (e) {
-        return java.lang.Class.forName(name);
-    }
+	// for example, in Java:
+	// Class cls = Class.forName("java.lang.ClassLoader");
+		try {
+					//return classForName.loader.loadClass(name)
+					return org.gjt.sp.jedit.JARClassLoader.loadClass(name)
+		}
+			catch (e) {
+				return java.lang.Class.forName(name);
+		}
 }
-classForName.loader = org.gjt.sp.jedit.JARClassLoader()
+//classForName.loader = org.gjt.sp.jedit.JARClassLoader; //();
 classForName.__docstring__ = 'get a class from its fully qualified name (plugin classes allowed)'
 //}}}
 
@@ -177,12 +181,24 @@ getPlugins.__docstring__ = "returns a list of jedit.PluginJAR's one for each plu
 showPlugins = function(){//{{{
 	var plugs = getPlugins();
 	for (var i in plugs){
-			println(plugs[i].getClassName());
+			print(plugs[i].getClassName());
 	}
 };
 showPlugins.__docstring__ = "Print the names of availiable plugins";
 //}}}
 
+//}}}
+
+//{{{ new functions; both print in blue color
+function print(message) {//{{{
+	JsShell.printConsole(message);
+}
+//}}}
+
+function println(message) {//{{{
+	JsShell.printlnConsole(message);
+}
+//}}}
 //}}}
 
 /* :folding=explicit:collapseFolds=1:tabSize=2:indentSize=2:noTabs=false: */

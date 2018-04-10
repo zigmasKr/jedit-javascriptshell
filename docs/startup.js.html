@@ -10,13 +10,15 @@
 
 	<p><b>Authors:</b><br>
 	Jakub Roztočil &lt;<a href="mailto:jakub@webkitchen.cz">jakub@webkitchen.cz</a>&gt;<br>
-	Robert Ledger &lt;<a href="mailto:robert@pytrash.co.uk">robert@pytrash.co.uk</a>&gt;</p>
+	Robert Ledger &lt;<a href="mailto:robert@pytrash.co.uk">robert@pytrash.co.uk</a>&gt;<br>
+	Zigmantas Kryžius &lt;<a href="mailto:zigmas.kr@gmail.com">zigmas.kr@gmail.com</a>&gt;</p>
 <hr>
 <p>
 <a href="index.html">Home</a> |
-<a href="ScriptingJava.html">Scripting Java</a> |
-<b>startup.js</b> | 
-<a href="SwingApplication.js.html">SwingApplication.js</a>
+<a href="ScriptingJavaNashorn.html">Scripting Java with Nashorn</a> |
+<b>startup.js</b> |
+<a href="SwingApplication.js.html">SwingApplication.js</a> |
+<a href="ScriptingJavaRhino.html">Scripting Java (Rhino)</a>
 </p><hr>
 </center>
 <blockquote><pre>/*
@@ -26,6 +28,7 @@
 jedit = org.gjt.sp.jedit;
 jEdit = jedit.jEdit
 Macros = jedit.Macros
+JsShell = Java.type('javascriptshell.JavaScriptShell');
 
 
 //{{{ Dialog functions
@@ -159,7 +162,7 @@ function show(o){//{{{
 
 	for (i in o){
 		echo(i + ': ' + o[i]);
-  }
+	}
 show.__docstring__ = "enumerate the contents of an object"
 }//}}}
 
@@ -178,12 +181,12 @@ show.__docstring__ = "enumerate the contents of an object"
  *  class console.gui.Button
  */
 function classForName(name) {
-    try {
-    			return classForName.loader.loadClass(name)
-    }
-    	catch (e) {
-        return java.lang.Class.forName(name);
-    }
+		try {
+					return classForName.loader.loadClass(name)
+		}
+			catch (e) {
+				return java.lang.Class.forName(name);
+		}
 }
 classForName.loader = org.gjt.sp.jedit.JARClassLoader()
 classForName.__docstring__ = 'get a class from its fully qualified name (plugin classes allowed)'
@@ -204,6 +207,18 @@ showPlugins = function(){//{{{
 showPlugins.__docstring__ = "Print the names of availiable plugins";
 //}}}
 
+//}}}
+
+//{{{ new functions; both print in blue color
+function print(message) {//{{{
+	JsShell.printConsole(message);
+}
+//}}}
+
+function println(message) {//{{{
+	JsShell.printlnConsole(message);
+}
+//}}}
 //}}}
 
 /* :folding=explicit:collapseFolds=1:tabSize=2:indentSize=2:noTabs=false: */

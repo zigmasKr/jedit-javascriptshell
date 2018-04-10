@@ -10,61 +10,45 @@
 
 	<p><b>Authors:</b><br>
 	Jakub Roztočil &lt;<a href="mailto:jakub@webkitchen.cz">jakub@webkitchen.cz</a>&gt;<br>
-	Robert Ledger &lt;<a href="mailto:robert@pytrash.co.uk">robert@pytrash.co.uk</a>&gt;</p>
+	Robert Ledger &lt;<a href="mailto:robert@pytrash.co.uk">robert@pytrash.co.uk</a>&gt;<br>
+	Zigmantas Kryžius &lt;<a href="mailto:zigmas.kr@gmail.com">zigmas.kr@gmail.com</a>&gt;</p>
 <hr>
 <p>
 <b>Home</b> |
-<a href="ScriptingJava.html">Scripting Java</a> |
-<a href="startup.js.html">startup.js</a> | 
-<a href="SwingApplication.js.html">SwingApplication.js</a>
+<a href="ScriptingJavaNashorn.html">Scripting Java with Nashorn</a> |
+<a href="startup.js.html">startup.js</a> |
+<a href="SwingApplication.js.html">SwingApplication.js</a> |
+<a href="ScriptingJavaRhino.html">Scripting Java (Rhino)</a>
 </p><hr>
 </center>
 
 <h2>Summary</h2>
 
 <blockquote>
-
 	<p>The JavaScriptShell plugin adds to jEdit a new script handler
-	so you can write macros and startup scripts in JavaScript. It also adds a
-	JavaScript shell to the console interface provided by the Console Plugin.</p>
+	so you can write macros and startup scripts in JavaScript (Nashorn). It also adds a
+	JavaScript (scripting) shell to the console interface provided by the Console Plugin.</p>
 
 	<p>A feature of JavaScriptShell is that it uses the built in Javascript engine
-	provided by Java 1.6 and later. No external libraries are required.</p>
+	provided by Java 1.8 and later. No external libraries are required.</p>
 
-	<p>A major addition to v0.3 is that the <code>print</code>
-	and <code>printnl</code> now work. In the interactive shell the output appears
-	in the console as one would expect. In script and macro mode the output is included
-	with the return value.</p>
-	
-	<p>In v0.4 of the plugin, jdk.nashorn.api.scripting.* is used.</p>
+</blockquote>
 
-	<blockquote>
+	<h2>Playing with Nashorn</h2>
+
+<blockquote>
+	<p>Perhaps the best way to play with Nashorn is to write some meaningful code on a buffer
+	and evaluate it in JavaScript.</p>
 
 		<h3>Example:</h3>
-
 		<blockquote>
 			<p>Type the following into an empty buffer and select the text<p>
-			
 			<blockquote>
-
 				<pre>for (var i=0; i&lt;10; i++) print(i + ', '); 10</pre>
-				
 			</blockquote>
-			
 			<p>Now select the "Plugins->JavaScriptShell->Evaluate selection in Javascript"
-			menu item. The text will be replaced with the following result.
-
+			menu item. Then look what will be printed in the JavaScript console.
 		</blockquote>
-
-		<h3>Result:</h3>
-
-		<blockquote>
-
-			<pre>1, 2, 3, 4, 5, 6, 7, 8, 9, 10.0</pre>
-
-		</blockquote>
-
-	</blockquote>
 
 </blockquote>
 
@@ -72,7 +56,7 @@
 
 <blockquote>
 
-	<p>The following vairables and functions are made availiable to scripts
+	<p>The following variables and functions are made availiable to scripts
 	and shell commands.</p>
 
 	<ul>
@@ -96,8 +80,24 @@
 
 </blockquote>
 
-
 <a id="scripts"><h2>Scripts</h2></a>
+
+<blockquote>
+
+	<h3>Macros and jEdit Plugins in Nashorn</h3>
+	<blockquote>
+	<p>Nashorn scripts placed in the jEdit's home subfolder <code>macros</code> become
+	macros. It is even better to place the macros written in Nashorn in the subfolder
+	<code>macros/js</code>. The above listed global variables allow to operate on
+	jEdit's objects or files (buffers) opened in jEdit.<p>
+	<p>The methods <code>runScriptInvocable(...)</code> and <code>evaluateScript(...)</code>
+	allow to write jEdit's plugins in Java + Nashorn where the main functional part can be written
+	in Nashorn. When writing Nashorn script for a jEdit plugin, one may follow an idea that a function
+	(or an object) in a script returns (evaluates in) a Java JPanel like object which aferwards
+	is added to the plugins [...]PluginPanel.</p>
+	</blockquote>
+
+</blockquote>
 
 <blockquote>
 
@@ -155,40 +155,38 @@
 	<h3>Plugin Import Mechanism</h3>
 
 	<blockquote>
-
-		<p>The native Rhino engine does not support loading jEdits plugin packages.
-		Therefore we have to organise this ourselves.  A simple system is included in the
-		sample <code>startup.js</code>. It consists of the <code>classForName</code>
-		function. eg:</p>
-
-		<blockquote>
-
-			<pre>Button = classForName('console.gui.Button');</pre>
-
-		</blockquote>
-
-		<p>returns the console.gui.Button class.</p>
-
-		<p>If a matching plugin class is not found the request is passed on to
-		<code>java.lang.Class.classForName(name)</code> so any class may be imported
-		using this method.</p>
-
+		<p>jEdit's plugin packages are accessible to Nashorn as all packages that are on
+		the classpath.</p>
+		<p>One can write on a buffer the following code</p>
+		<code>
+		var Button = Java.type('console.gui.Button');
+		</code><br>
+		<code>
+		var b = new Butn("plugin.javascriptshell.JavaScriptShellPlugin.depend.0");
+		</code><br>
+		<code>
+		// the argument must be a jEdit property
+		</code><br>
+		<code>
+		alert(b);
+		</code><br>
+		<code>
+		// this will show that 'b' is alive
+		</code><br>
+		<code>
+		alert(b.text);
+		</code><br>
+		<code>
+		// this will show "jedit 05.03.00.00"
+		</code>
 	</blockquote>
+	<p>and then evaluate the buffer in JavaScript.
 
 </blockquote>
 
 <a id="todo"><h2>To Do . . .</h2></a>
 
 <blockquote>
-
-	<h3>Better Import Plugin Import Mechanism</h3>
-
-	<blockquote>
-
-		<p>A better system is needed; fitting in with the native Rhino
-		system, or running parallel with it.  Use BeanShell as a model?</p>
-
-	</blockquote>
 
 	<h3>Seperate scopes for each console.</h3>
 
@@ -208,16 +206,6 @@
 	<blockquote>
 
 		<p>allow <code>%cmd parameters</code> type commands</p>
-
-	</blockquote>
-
-	<h3>More Docs and Tutorial</h3>
-
-	<blockquote>
-
-		<p>Collect together some basic documentation, tutorials and demos
-		concerning the underlying Rhino engine, especially where it relates
-		to scripting jEdit.</p>
 
 	</blockquote>
 
@@ -245,7 +233,9 @@
 			<p>Version 0.3</p>
 			<ul>
 				<li>
-					<p>Added support for <code>print</code> and <code>printnl</code></p>
+					<p>Added support for <code>print</code> and <code>printnl</code>. In the interactive
+					shell the output appears in the console as one would expect. In script and macro mode
+					the output is included with the return value.</p>
 				</li>
 				<li>
 					<p>Added extra functions to the the demo startup script</p>
@@ -256,6 +246,36 @@
 				<li>
 					<p>Added general purpose evaluateCode method for macros which allows
 					output, return value and errors to be intercepted.</p>
+				</li>
+			</ul>
+		</li>
+		<li>
+			<p>Version 0.4</p>
+			<ul>
+				<li>
+					<p>In version 0.4 of the plugin, <code>jdk.nashorn.api.scripting.*</code> is used.</p>
+				</li>
+			</ul>
+		</li>
+		<li>
+			<p>Version 0.5</p>
+			<ul>
+				<li>
+					<p>The method <code>runScriptInvocable(...)</code> is added.
+					The method <code>evaluateSelection()</code> is changed so that a selection
+					in a buffer is not replaced by a resulting value. Instead, the resulting
+					value is printed in the console.</p>
+				</li>
+			</ul>
+		</li>
+		<li>
+			<p>Version 0.5.1</p>
+			<ul>
+				<li>
+					<p>The method
+					<code>evaluateScript(View view, FileReader scriptfr, boolean showError)</code> is added.
+					The method item "Evaluate file in Javascript" is added. The help is updated. For the historical reasons
+					the section on scritping with Rhino is retained.</p>
 				</li>
 			</ul>
 		</li>

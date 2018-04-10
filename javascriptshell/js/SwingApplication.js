@@ -39,73 +39,110 @@
  * @author Roger E Critchlow, Jr.
  */
 
-var swingNames = JavaImporter();
+/*
+* The script is adapted to the Nashorn (JavaScript engine) by
+* Zigmantas Kryzius, e-mail: zigmas.kr@gmail.com
+* 2018
+*
+* Under:
+* GNU GENERAL PUBLIC LICENSE
+* Version 3, 29 June 2007
+* =========================================
+* The complete license text can be found on
+* https://www.gnu.org/licenses/gpl.html
+* https://opensource.org/licenses/GPL-3.0
+* =========================================
+*/
 
-swingNames.importPackage(Packages.javax.swing);
-swingNames.importPackage(Packages.java.awt);
-swingNames.importPackage(Packages.java.awt.event);
+var imports = new JavaImporter(
+	java.awt,
+	java.awt.event,
+	javax.swing
+	);
 
-function createComponents()
-{
-    with (swingNames) {
-        var labelPrefix = "Number of button clicks: ";
-        var numClicks = 0;
-        var label = new JLabel(labelPrefix + numClicks);
-        var button = new JButton("I'm a Swing button!");
-        button.mnemonic = KeyEvent.VK_I;
-        // Since Rhino 1.5R5 JS functions can be passed to Java method if
-        // corresponding argument type is Java interface with single method
-        // or all its methods have the same number of arguments and the
-        // corresponding arguments has the same type. See also comments for
-        // frame.addWindowListener bellow
-        button.addActionListener(function() {
-            numClicks += 1;
-            label.setText(labelPrefix + numClicks);
-        });
-        label.setLabelFor(button);
+with (imports) {
 
-        /*
-         * An easy way to put space between a top-level container
-         * and its contents is to put the contents in a JPanel
-         * that has an "empty" border.
-         */
-        var pane = new JPanel();
-        pane.border = BorderFactory.createEmptyBorder(30, //top
-                                                      30, //left
-                                                      10, //bottom
-                                                      30); //right
-        pane.setLayout(new GridLayout(0, 1));
-        pane.add(button);
-        pane.add(label);
+	function createComponents() {
+		// Creates the top-level container.
+		var pane = new JPanel();
+		label = new JLabel();
+		labelPrefix = "Number of button clicks: ";
+		numClicks = 0;
+		label.setText(labelPrefix.concat(numClicks));
+		var button = new JButton("I'm a Swing button!");
+		button.setMnemonic(KeyEvent.VK_S);
+		/*
+		* = This comment is retained from the Rhino version the script =
+		* An easy way to put space between a top-level container
+		* and its contents is to put the contents in a JPanel
+		* that has an "empty" border.
+		*/
+		pane.setBorder(BorderFactory.createEmptyBorder(
+			30, //top
+			30, //left
+			10, //bottom
+			30)); //right
+		pane.setLayout(new GridLayout(0, 1));
+		pane.add(button);
+		pane.add(label);
 
-        return pane;
-    }
-}
+		/*
+		* = This comment is retained from the Rhino version the script =
+		* Since Rhino 1.5R5 JS functions can be passed to Java method if
+		* corresponding argument type is Java interface with single method
+		* or all its methods have the same number of arguments and the
+		* corresponding arguments has the same type. See also comments for
+		* frame.addWindowListener bellow
+		*/
 
-with (swingNames) {
-    try {
-	UIManager.
-            setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-    } catch (e) { }
-
-    //Create the top-level container and add contents to it.
-    var frame = new swingNames.JFrame("SwingApplication");
-    frame.getContentPane().add(createComponents(), BorderLayout.CENTER);
-
-    // Pass JS function as implementation of WindowListener. It is allowed since
-    // all methods in WindowListener have the same signature. To distinguish
-    // between methods Rhino passes to JS function the name of corresponding
-    // method as the last argument
-    frame.addWindowListener(function(event, methodName) {
-	if (methodName == "windowClosing") {
-            java.lang.System.exit(0);
+		button.addActionListener(
+			// Anonymous action listener:
+			function() {
+				numClicks = numClicks + 1;
+				label.setText(labelPrefix.concat(numClicks));
+			});
+		//label.setLabelFor(button);  // not needed, actually
+		//
+		return pane;
 	}
-    });
 
-    //Finish setting up the frame, and show it.
-    frame.pack();
-    frame.setVisible(true);
+	function mainFrame(panel) {
+		// Lines with alert(...) can be uncommented if startup.js is run
+		// within jEdit, i.e., run as a macro or run via plugin's
+		// action "Evaluate buffer".
+		// Make the main frame:
+		frame = new JFrame("SwingApplication");
+		frame.getContentPane().add(panel, BorderLayout.CENTER);
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		//
+		// Named window listener - an extension of a native Java window adapter
+		var WindowAdapter = Java.type('java.awt.event.WindowAdapter');
+		var ClosingListenerExt = Java.extend(WindowAdapter,
+			{
+				windowClosing: function() {
+					println("CLOSING?");
+					//alert("CONFIRM");
+					var choice = JOptionPane.showConfirmDialog(null, "Are you sure?");
+					if (choice == JOptionPane.YES_OPTION) {
+						//frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+						frame.dispose();
+					}
+				}
+			});
+		var ClosingListenerExtInstance = new ClosingListenerExt();
+		//alert(ClosingListenerExtInstance);
+		//
+		frame.addWindowListener(ClosingListenerExtInstance);
+		frame.pack();
+		frame.setVisible(true);
+	}
+
+	//alert(UIManager);
+	//alert(UIManager.getCrossPlatformLookAndFeelClassName());
+	try {
+		UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+	} catch (e) { }
+
+	mainFrame(createComponents());
+
 }
-
-
-

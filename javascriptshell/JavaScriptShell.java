@@ -1,7 +1,7 @@
 /*
  * JavaScriptShell.java
  *
- * Copyright (c) 2017 Zigmantas Kryzius <zigmas.kr@gmail.com>
+ * Copyright (c) 2017-2018 Zigmantas Kryzius <zigmas.kr@gmail.com>
  * Copyright (c) 2009 Robert Ledger <robert@pytrash.co.uk>
  * Copyright (c) 2007 Jakub Roztocil <jakub@webkitchen.cz>
  *
@@ -18,6 +18,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * https://www.gnu.org/licenses/gpl.html
  *
  */
 package javascriptshell;
@@ -29,7 +30,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.PrintWriter;
+import java.io.FileNotFoundException;
 
+import java.util.List;
 import javax.script.*;
 
 import org.gjt.sp.jedit.*;
@@ -52,6 +55,7 @@ public class JavaScriptShell extends Shell {
 
 	/** The scripting engine instance used to evaluate scripts.  */
 	private static ScriptEngine engine;
+	//private static Invocable invocableJS;
 
 	//{{{ JavaScriptShell constructor
 
@@ -73,7 +77,7 @@ public class JavaScriptShell extends Shell {
 		//Log.log(Log.DEBUG, JavaScriptShell.class, "JavaScript: scriptManager: " + scriptManager.toString());
 		scriptManager.registerEngineExtension("js", new NashornScriptEngineFactory());
 		engine = scriptManager.getEngineByExtension("js");
-		
+
 		if (!(engine == null)) {
 			Log.log(Log.DEBUG, JavaScriptShell.class, "Nashorn scripting engine: " + engine.toString());
 			engine.setBindings(new SimpleBindings(), ScriptContext.ENGINE_SCOPE);
@@ -160,9 +164,33 @@ public class JavaScriptShell extends Shell {
 
 		String  prompt  = "\n" + jEdit.getProperty("javascriptshell.prompt", "JavaScript");
 		//output.writeAttrs(ConsolePane.colorAttributes(console.getInfoColor()), prompt);
-		// blue color is to mark that this console is not a 'true' Nashorn console
+		// blue color is to mark that this console is Nashorn scripting console
 		output.writeAttrs(ConsolePane.colorAttributes(Color.blue), prompt);
 		output.writeAttrs(ConsolePane.colorAttributes(console.getPlainColor()), " ");
+	}//}}}
+
+	//{{{ printPromptLocal() method
+	public static void printPromptLocal(Console console, String prefix) {
+		// @param prefix, typically, is "\n" or ""
+		String  prompt  = prefix + jEdit.getProperty("javascriptshell.prompt", "JavaScript");
+		console.getOutput().writeAttrs(ConsolePane.colorAttributes(Color.blue), prompt);
+		console.getOutput().writeAttrs(ConsolePane.colorAttributes(console.getPlainColor()), " ");
+	}//}}}
+
+	//{{{ printConsole() method
+	// utility method, prints a text to the console
+	public static void printConsole(String text) {
+		Console console = ConsolePlugin.getConsole(jEdit.getActiveView());
+		console.getOutput().writeAttrs(ConsolePane.colorAttributes(Color.blue), text);
+		console.getOutput().writeAttrs(ConsolePane.colorAttributes(console.getPlainColor()), " ");
+	}//}}}
+
+	//{{{ printlnConsole() method
+	// utility method, prints a text appended with "\n" to the console
+	public static void printlnConsole(String text) {
+		Console console = ConsolePlugin.getConsole(jEdit.getActiveView());
+		console.getOutput().writeAttrs(ConsolePane.colorAttributes(Color.blue), text + "\n");
+		console.getOutput().writeAttrs(ConsolePane.colorAttributes(console.getPlainColor()), "");
 	}//}}}
 
 	//{{{ setClobals() methods
@@ -228,7 +256,7 @@ public class JavaScriptShell extends Shell {
 	 * Execute the contents of a file as a script.
 	 *
 	 * A fake console.Output object is provided, to collect output
-	 * from the script, thus emualating a console.
+	 * from the script, thus emulating a console.
 	 *
 	 * @param path  The file path of the script.
 	 * @param view  A jEdit view.
@@ -261,6 +289,56 @@ public class JavaScriptShell extends Shell {
 		}
 	}//}}}
 
+	//{{{ runScriptInvocable() method  // new: 2/26/2018
+	/**
+	 * Execute the contents of a file as a script, invocable.
+	 *
+	 * A fake console.Output object is provided, to collect output
+	 * from the script, thus emulating a console.
+	 *
+	 * @param path  The file path of the script.
+	 * @param view  A jEdit view.
+	 * @param function A function in a Nashorn script.
+	 * @param args Argument(s) to the script's function, mainly, String or String[].
+	 */
+	public static RetVal runScriptInvocable(String path, View view, String function, Object... args) {
+		FileReader scriptFileReader;
+		StringOutput output  = new StringOutput();
+		Object scriptVal = null;
+		String errMessage = null;
+		//
+		setGlobals(view, output);
+		engine.getContext().setWriter(new PrintWriter(new ShellWriter(output)));
+		Invocable invocable = (Invocable) engine;
+		//
+		try {
+			scriptFileReader = new FileReader(path);
+			engine.eval(scriptFileReader);
+			scriptVal = invocable.invokeFunction(function, args);
+		}
+		catch(FileNotFoundException fe)
+		{
+			Log.log(Log.ERROR, JavaScriptShell.class, fe.toString());
+			errMessage = fe.toString();
+			new TextAreaDialog(view, "FileNotFoundException", fe);
+		}
+		catch(ScriptException se)
+		// otherwise, error: unreported exception ScriptException; must be caught or declared to be thrown
+		{
+			Log.log(Log.ERROR, JavaScriptShell.class, se.toString());
+			errMessage = se.toString();
+			new TextAreaDialog(view, "ScriptException", se);
+		}
+		catch(NoSuchMethodException me)
+		// otherwise, error: unreported exception NoSuchMethodException; must be caught or declared to be thrown
+		{
+			Log.log(Log.ERROR, JavaScriptShell.class, me.toString());
+			errMessage = me.toString();
+			new TextAreaDialog(view, "NoSuchMethodException", me);
+		}
+		return new RetVal(scriptVal, errMessage);
+	}//}}}
+
 	//{{{ evaluateSelection() method
 	/** Evaluate the contents of selected text in the current buffer.  */
 	public static void evaluateSelection() {
@@ -268,6 +346,9 @@ public class JavaScriptShell extends Shell {
 		View      view          = jEdit.getActiveView();
 		TextArea  textArea      = view.getTextArea();
 		String    selectedText  = textArea.getSelectedText();
+		// console, where the engine output will be printed:
+		Console   console       = ConsolePlugin.getConsole(view);
+		String    engineOutput;
 
 		if (selectedText == null) {
 			view.getToolkit().beep();
@@ -277,6 +358,10 @@ public class JavaScriptShell extends Shell {
 
 			if (result.error) {
 				view.getToolkit().beep();
+				engineOutput = result.out.toString() + result.retVal.toString();
+				console.print(console.getErrorColor(), "\nJavascript engine error: ");
+				console.print(console.getErrorColor(), engineOutput);
+				printPromptLocal(console, "");
 				return;
 			}
 			Object  retVal  = result.retVal;
@@ -285,7 +370,11 @@ public class JavaScriptShell extends Shell {
 			} else {
 				retVal = retVal.toString();
 			}
-			textArea.setSelectedText(result.out.toString() + retVal);
+			//textArea.setSelectedText(result.out.toString() + retVal);  // originally
+			engineOutput = result.out.toString() + retVal;
+			console.print(console.getInfoColor(), "\nJavascript engine output: ");
+			console.print(console.getPlainColor(), engineOutput);
+			printPromptLocal(console, "");
 		}
 	}//}}}
 
@@ -296,7 +385,7 @@ public class JavaScriptShell extends Shell {
 	 */
 	public static void evaluateBuffer() {
 		View  view  = jEdit.getActiveView();
-		evaluateBuffer(view, false);
+		evaluateBuffer(view, true);   // false, in the original
 	}
 
 
@@ -310,9 +399,35 @@ public class JavaScriptShell extends Shell {
 	 */
 	public static void evaluateBuffer(View view, boolean showOutput) {
 		String  text    = view.getTextArea().getText();
-		RetVal  retval  = evaluateCode(view, text);
-		if (showOutput) {
+		// console, where the engine output will be printed:
+		Console console    = ConsolePlugin.getConsole(view);
+		String  engineOutput;
 
+		if (text == null) {
+			view.getToolkit().beep();
+		} else {
+
+			RetVal  result  = evaluateCode(view, text, true);
+			if (showOutput) {
+				if (result.error) {
+					view.getToolkit().beep();
+					engineOutput = result.out.toString() + result.retVal.toString();
+					console.print(console.getErrorColor(), "\nJavascript engine error: ");
+					console.print(console.getErrorColor(), engineOutput);
+					printPromptLocal(console, "");
+					return;
+				}
+			}
+			Object  retVal  = result.retVal;
+			if (retVal == null) {
+				retVal = "";
+			} else {
+				retVal = retVal.toString();
+			}
+			engineOutput = result.out.toString() + retVal;
+			console.print(console.getInfoColor(), "\nJavascript engine output: ");
+			console.print(console.getPlainColor(), engineOutput);
+			printPromptLocal(console, "");
 		}
 	}//}}}
 
@@ -351,6 +466,43 @@ public class JavaScriptShell extends Shell {
 
 		try {
 			retVal = engine.eval(command.toString());
+		} catch (ScriptException e) {
+			Log.log(Log.ERROR, JavaScriptShell.class, e.toString());
+
+			if (showError) {
+				new TextAreaDialog(view, "javascript-error", e);
+			}
+
+			return new RetVal(e, output.toString(), true, showError);
+		}
+
+		return new RetVal(retVal, output.toString());
+	}//}}}
+
+	//{{{ evaluateScript() method // new 4/2/2018
+	/**
+	 * Evaluate javascript, collect output and return the result;
+	 * script is given via FileReader
+	 *
+	 * @param scriptfr   the javascript, FileReader, to be evaluated.
+	 * @param view       the jEdit view from which this command was invoked.
+	 * @param showError  set to true if errors are to be shown in a dialog.
+	 * @return           RetVal instance containing result, output and error information.
+	 */
+	public static RetVal evaluateScript(View view, FileReader scriptfr, boolean showError) {
+
+		StringOutput  output  = new StringOutput();
+		Object        retVal  = null;
+
+		//if (command == null || command.equals("")) {
+		//	return new RetVal("", "");
+		//}
+
+		setGlobals(view, output);
+		engine.getContext().setWriter(new PrintWriter(new ShellWriter(output)));
+
+		try {
+			retVal = engine.eval(scriptfr, engine.getContext());
 		} catch (ScriptException e) {
 			Log.log(Log.ERROR, JavaScriptShell.class, e.toString());
 

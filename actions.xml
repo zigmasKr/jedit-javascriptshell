@@ -7,4 +7,14 @@
 	<ACTION NAME="javascriptshell.evaluate-buffer">
 		<CODE>javascriptshell.JavaScriptShell.evaluateBuffer();</CODE>
 	</ACTION>
+	<ACTION NAME="javascriptshell.evaluate-file">
+		<CODE>
+			dialog = new VFSFileChooserDialog(view, buffer.getDirectory(),
+				VFSBrowser.OPEN_DIALOG, false, true);
+			files = dialog.getSelectedFiles();
+			if (files != null) {
+				javascriptshell.JavaScriptShell.runScript(files[0], view);
+			}
+		</CODE>
+	</ACTION>
 </ACTIONS>
