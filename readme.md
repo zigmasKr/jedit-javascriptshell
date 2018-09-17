@@ -1,3 +1,6 @@
+
+# jedit-javascriptshell
+
 <h1>JavaScriptShell plugin, version 0.5.1</h1>
 
 <h2>Overview</h2>
